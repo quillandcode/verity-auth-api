@@ -1,0 +1,222 @@
+openapi: 3.0.3
+info:
+  title: Verity Auth API
+  version: 1.0.0
+  description: Authentication API for user registration, login, token refresh, and logout.
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+paths:
+  /api/v1/users:
+    post:
+      summary: Create a new user
+      description: Registers a user under the specified app slug.
+      tags:
+        - Users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                app_slug:
+                  type: string
+                  example: "sot"
+                user:
+                  type: object
+                  properties:
+                    email:
+                      type: string
+                      format: email
+                      example: testuser@example.com
+                    password:
+                      type: string
+                      format: password
+                      example: password123
+                    password_confirmation:
+                      type: string
+                      format: password
+                      example: password123
+                  required:
+                    - email
+                    - password
+                    - password_confirmation
+              required:
+                - app_slug
+                - user
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: "user_id_here"
+                  email:
+                    type: string
+                    example: testuser@example.com
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: string
+                    example: ["Email has already been taken"]
+
+  /api/v1/login:
+    post:
+      summary: Log in a user
+      description: Authenticates a user and returns access tokens.
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                app_slug:
+                  type: string
+                  example: "sot"
+                email:
+                  type: string
+                  format: email
+                  example: testuser@example.com
+                password:
+                  type: string
+                  format: password
+                  example: password123
+              required:
+                - app_slug
+                - email
+                - password
+      responses:
+        '200':
+          description: Successful login, returns access and refresh tokens
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6...
+                  refresh_token:
+                    type: string
+                    example: 8dcf5d7a-9a2d-4b28-8aa9-726234e7e847
+                  expires_in:
+                    type: integer
+                    example: 3600
+                  token_type:
+                    type: string
+                    example: Bearer
+        '401':
+          description: Unauthorized - invalid credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Invalid email or password
+
+  /api/v1/refresh:
+    post:
+      summary: Refresh access token
+      description: Issues a new access token using a valid refresh token.
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refresh_token:
+                  type: string
+                  example: your_refresh_token_string
+              required:
+                - refresh_token
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6...
+                  refresh_token:
+                    type: string
+                    example: new_refresh_token_here
+                  expires_in:
+                    type: integer
+                    example: 3600
+                  token_type:
+                    type: string
+                    example: Bearer
+        '401':
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Invalid refresh token
+
+  /api/v1/logout:
+    post:
+      summary: Log out a user
+      description: Revokes the refresh token and logs out the user.
+      tags:
+        - Authentication
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refresh_token:
+                  type: string
+                  example: your_refresh_token_string
+              required:
+                - refresh_token
+      responses:
+        '204':
+          description: Logged out successfully
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Invalid or expired token
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
